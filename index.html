@@ -659,7 +659,6 @@ function renderizarPuntos(puntos) {
       fillColor: tieneNota ? "#4fc3f7" : "#f0c040",
       color: "#000", weight: 0.5, fillOpacity: 0.85,
     });
-    m.on("click", () => { abrirModal(p, idx); });
     m.bindPopup(() => construirPopup(p, idx));
     markersActuales.push(m);
     return m;
