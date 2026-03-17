@@ -346,8 +346,9 @@
       <div>
         <div class="section-label">Modo de filtro</div>
         <div class="mode-tabs">
-          <button class="mode-tab active" id="tab-distrito" onclick="setMode('distrito')">Por Distrito</button>
-          <button class="mode-tab" id="tab-area" onclick="setMode('area')">Por Área</button>
+          <button class="mode-tab active" id="tab-distrito" onclick="setMode('distrito')">Distrito</button>
+          <button class="mode-tab" id="tab-area" onclick="setMode('area')">Área</button>
+          <button class="mode-tab" id="tab-cod" onclick="setMode('cod')">Suministro</button>
         </div>
       </div>
 
@@ -371,6 +372,14 @@
         </p>
         <div class="area-info" id="area-info" style="margin-top:10px">
           Área dibujada: <span>lista para filtrar</span>
+        </div>
+      </div>
+
+      <div id="panel-cod" style="display:none">
+        <div class="section-label">Pega los códigos</div>
+        <textarea id="input-cods" placeholder="Pega aquí los códigos desde Excel, uno por línea o separados por coma..." style="min-height:120px;"></textarea>
+        <div style="margin-top:6px; font-size:11px; color:var(--muted);">
+          Acepta: una columna de Excel, comas, espacios o saltos de línea.
         </div>
       </div>
 
@@ -562,15 +571,24 @@ function setMode(modo) {
   modoActual = modo;
   document.getElementById("tab-distrito").classList.toggle("active", modo === "distrito");
   document.getElementById("tab-area").classList.toggle("active", modo === "area");
+  document.getElementById("tab-cod").classList.toggle("active", modo === "cod");
   document.getElementById("panel-distrito").style.display = modo === "distrito" ? "block" : "none";
   document.getElementById("panel-area").style.display     = modo === "area"     ? "block" : "none";
+  document.getElementById("panel-cod").style.display      = modo === "cod"      ? "block" : "none";
   document.getElementById("btn-filtrar").disabled = true;
+
   if (modo === "area") {
     drawControl.addTo(map);
     setStatus("Dibuja un polígono o rectángulo en el mapa.");
   } else {
     try { drawControl.remove(); } catch(e) {}
-    document.getElementById("btn-filtrar").disabled = !document.getElementById("sel-distrito").value;
+    if (modo === "distrito") {
+      document.getElementById("btn-filtrar").disabled = !document.getElementById("sel-distrito").value;
+    } else {
+      // Habilitar filtrar si ya hay texto pegado
+      const txt = document.getElementById("input-cods")?.value.trim();
+      document.getElementById("btn-filtrar").disabled = !txt;
+    }
   }
 }
 
@@ -583,9 +601,11 @@ async function filtrar() {
     const ubigeo = document.getElementById("sel-distrito").value;
     if (!ubigeo) return;
     await filtrarPorDistrito(ubigeo);
-  } else {
+  } else if (modoActual === "area") {
     if (!polyDibujada) return;
     await filtrarPorArea();
+  } else {
+    await filtrarPorCodigos();
   }
 }
 
@@ -636,6 +656,52 @@ async function filtrarPorArea() {
   puntosActuales = result;
   renderizarPuntos(result);
   setLoading(false, `${result.length.toLocaleString()} suministros en el área.`);
+}
+
+async function filtrarPorCodigos() {
+  const raw = document.getElementById("input-cods").value;
+  // Separar por salto de línea, coma, punto y coma o tabulación
+  const codigos = new Set(
+    raw.split(/[\n\r,;\t]+/)
+       .map(c => c.trim())
+       .filter(c => c.length > 0)
+  );
+
+  if (!codigos.size) { setStatus("No hay códigos válidos."); return; }
+
+  setLoading(true, `Buscando ${codigos.size} suministros...`);
+
+  let result = [];
+  let proc = 0;
+
+  for (const dist of todosDistritos) {
+    try {
+      let puntos = [];
+      const idxRes = await fetch(`${DATA_DIR}${dist.ubigeo}_index.json`);
+      if (idxRes.ok) {
+        const idx = await idxRes.json();
+        for (let i = 1; i <= idx.paginas; i++) {
+          const parte = await (await fetch(`${DATA_DIR}${dist.ubigeo}_${i}.json`)).json();
+          puntos = puntos.concat(parte);
+        }
+      } else {
+        puntos = await (await fetch(`${DATA_DIR}${dist.ubigeo}.json`)).json();
+      }
+      for (const p of puntos) {
+        if (codigos.has(p.cod)) result.push(p);
+      }
+    } catch(e) {}
+
+    proc++;
+    setStatus(`Procesando... ${proc}/${todosDistritos.length} | encontrados: ${result.length}`);
+
+    // Detener temprano si ya encontramos todos
+    if (result.length === codigos.size) break;
+  }
+
+  puntosActuales = result;
+  renderizarPuntos(result);
+  setLoading(false, `${result.length} de ${codigos.size} suministros encontrados.`);
 }
 
 function puntoEnPoligono(latlng, layer) {
@@ -920,6 +986,12 @@ function setStatus(msg) { document.getElementById("status-text").textContent = m
 // ════════════════════════════════════════
 // START
 // ════════════════════════════════════════
+document.getElementById("input-cods").addEventListener("input", () => {
+  if (modoActual === "cod") {
+    document.getElementById("btn-filtrar").disabled =
+      !document.getElementById("input-cods").value.trim();
+  }
+});
 cargarDistritos();
 </script>
 </body>
