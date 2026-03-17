@@ -227,6 +227,14 @@
     display: flex; align-items: center; justify-content: center;
   }
   .img-preview.visible { display: block; }
+  .img-thumb-wrap { position: relative; }
+  .img-thumb-wrap img { width:100%; border-radius:var(--radius); border:1px solid var(--border); max-height:140px; object-fit:cover; }
+  .img-thumb-remove {
+  position:absolute; top:6px; right:6px;
+  background:rgba(0,0,0,.7); border:none; color:var(--danger);
+  border-radius:50%; width:26px; height:26px; cursor:pointer; font-size:15px;
+  display:flex; align-items:center; justify-content:center;
+  }
   .modal-actions { display: flex; gap: 8px; }
   .modal-actions .btn { flex: 1; }
 
@@ -417,16 +425,13 @@
     </div>
 
     <div>
-      <div class="section-label">Imagen</div>
-      <div class="img-preview" id="img-preview">
-        <img id="img-preview-src" src="" alt="Preview"/>
-        <button class="img-remove" onclick="quitarImagen()">×</button>
-      </div>
-      <div class="upload-area" id="upload-area">
-        <input type="file" id="input-imagen" accept="image/*" onchange="onImagenSeleccionada(event)"/>
-        <div class="upload-icon">📷</div>
-        <div class="upload-label">Toca para <strong>adjuntar imagen</strong><br><small style="font-size:10px">JPG, PNG, WEBP</small></div>
-      </div>
+     <div class="section-label">Imágenes</div>
+  <div id="img-previews-container" style="display:flex;flex-direction:column;gap:8px;"></div>
+  <div class="upload-area" id="upload-area">
+    <input type="file" id="input-imagen" accept="image/*" multiple onchange="onImagenesSeleccionadas(event)"/>
+    <div class="upload-icon">📷</div>
+    <div class="upload-label">Toca para <strong>adjuntar imágenes</strong><br><small style="font-size:10px">JPG, PNG, WEBP — puedes seleccionar varias</small></div>
+  </div>
     </div>
 
     <div class="modal-actions">
@@ -457,7 +462,7 @@ let drawnItems      = null;
 let drawControl     = null;
 let ubigeoCargado   = null;
 let modalPuntoActual = null;
-let imagenBase64    = null;
+let imagenesActuales = [];
 let notas           = {};
 
 // ════════════════════════════════════════
@@ -722,7 +727,11 @@ function construirPopup(p, idx) {
     ${extras ? `<div class="popup-extras">${extras}</div>` : ""}
   `;
   if (nota?.comentario) html += `<div class="popup-note">💬 ${nota.comentario}</div>`;
-  if (nota?.imagen)     html += `<div class="popup-img"><img src="${nota.imagen}" alt="foto"/></div>`;
+  if (nota?.imagenes?.length) {
+    nota.imagenes.forEach(img => {
+      html += `<div class="popup-img"><img src="${img.data}" alt="foto"/></div>`;
+    });
+  }
   html += `<button class="popup-btn" id="popup-btn-${p.cod}">${nota ? '✏ Editar nota' : '+ Agregar nota'}</button>`;
 
   const div = document.createElement("div");
@@ -740,7 +749,7 @@ function construirPopup(p, idx) {
 // ════════════════════════════════════════
 function abrirModal(p, idx) {
   modalPuntoActual = { p, idx };
-  imagenBase64 = null;
+  imagenesActuales = [];
 
   document.getElementById("modal-cod").textContent    = p.cod;
   document.getElementById("modal-coords").textContent = `lat: ${p.lat.toFixed(6)} | lon: ${p.lon.toFixed(6)}`;
@@ -748,16 +757,9 @@ function abrirModal(p, idx) {
   const nota = notas[p.cod];
   document.getElementById("modal-comentario").value = nota?.comentario || "";
 
-  if (nota?.imagen) {
-    imagenBase64 = nota.imagen;
-    document.getElementById("img-preview-src").src = nota.imagen;
-    document.getElementById("img-preview").classList.add("visible");
-    document.getElementById("upload-area").style.display = "none";
-  } else {
-    document.getElementById("img-preview").classList.remove("visible");
-    document.getElementById("upload-area").style.display = "block";
-    document.getElementById("input-imagen").value = "";
-  }
+  // Cargar imágenes existentes
+  imagenesActuales = nota?.imagenes ? [...nota.imagenes] : [];
+  renderizarPreviews();
 
   document.getElementById("modal-overlay").classList.add("open");
 }
@@ -765,7 +767,7 @@ function abrirModal(p, idx) {
 function cerrarModal() {
   document.getElementById("modal-overlay").classList.remove("open");
   modalPuntoActual = null;
-  imagenBase64 = null;
+  imagenesActuales = [];
 }
 
 function guardarComentario() {
@@ -773,39 +775,56 @@ function guardarComentario() {
   const cod        = modalPuntoActual.p.cod;
   const comentario = document.getElementById("modal-comentario").value.trim();
 
-  if (comentario || imagenBase64) {
-    notas[cod] = { comentario, imagen: imagenBase64 || null, fecha: new Date().toISOString() };
+  if (comentario || imagenesActuales.length > 0) {
+    notas[cod] = {
+      comentario,
+      imagenes: imagenesActuales.length > 0 ? [...imagenesActuales] : [],
+      fecha: new Date().toISOString()
+    };
   } else {
     delete notas[cod];
   }
 
   guardarNotas();
   cerrarModal();
-  renderizarPuntos(puntosActuales); // refrescar colores y etiquetas
+  renderizarPuntos(puntosActuales);
   setStatus("Nota guardada ✓");
 }
 
 // ════════════════════════════════════════
 // IMAGEN
 // ════════════════════════════════════════
-function onImagenSeleccionada(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => {
-    imagenBase64 = ev.target.result;
-    document.getElementById("img-preview-src").src = imagenBase64;
-    document.getElementById("img-preview").classList.add("visible");
-    document.getElementById("upload-area").style.display = "none";
-  };
-  reader.readAsDataURL(file);
+function onImagenesSeleccionadas(e) {
+  const files = Array.from(e.target.files);
+  if (!files.length) return;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      imagenesActuales.push({ data: ev.target.result, nombre: file.name });
+      renderizarPreviews();
+    };
+    reader.readAsDataURL(file);
+  });
+  e.target.value = "";
 }
 
-function quitarImagen() {
-  imagenBase64 = null;
-  document.getElementById("img-preview").classList.remove("visible");
-  document.getElementById("upload-area").style.display = "block";
-  document.getElementById("input-imagen").value = "";
+function renderizarPreviews() {
+  const cont = document.getElementById("img-previews-container");
+  cont.innerHTML = "";
+  imagenesActuales.forEach((img, i) => {
+    const wrap = document.createElement("div");
+    wrap.className = "img-thumb-wrap";
+    wrap.innerHTML = `
+      <img src="${img.data}" alt="img${i+1}"/>
+      <button class="img-thumb-remove" onclick="quitarImagen(${i})">×</button>
+    `;
+    cont.appendChild(wrap);
+  });
+}
+
+function quitarImagen(idx) {
+  imagenesActuales.splice(idx, 1);
+  renderizarPreviews();
 }
 
 // ════════════════════════════════════════
@@ -816,6 +835,9 @@ function exportarExcel() {
 
   const filas = puntosActuales.map(p => {
     const nota = notas[p.cod] || {};
+    const nombresImagenes = nota.imagenes?.length
+      ? nota.imagenes.map((img, i) => `img_${p.cod}_${i+1}.jpg`).join(", ")
+      : "";
     return {
       "Cod. Suministro":  p.cod,
       "Latitud (WGS84)":  p.lat,
@@ -829,7 +851,7 @@ function exportarExcel() {
       "Alimentador":      p.alim       ?? "",
       "SED":              p.sed        ?? "",
       "Comentario":       nota.comentario || "",
-      "Imagen adjunta":   nota.imagen ? "Sí" : "No",
+      "Imágenes":         nombresImagenes,
       "Fecha nota":       nota.fecha ? new Date(nota.fecha).toLocaleString("es-PE") : "",
     };
   });
@@ -837,13 +859,29 @@ function exportarExcel() {
   const ws = XLSX.utils.json_to_sheet(filas);
   ws["!cols"] = [
     {wch:22},{wch:16},{wch:16},{wch:14},{wch:12},{wch:14},
-    {wch:12},{wch:14},{wch:24},{wch:16},{wch:14},{wch:42},{wch:14},{wch:22}
+    {wch:12},{wch:14},{wch:24},{wch:16},{wch:14},{wch:42},{wch:36},{wch:22}
   ];
-
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Suministros");
   XLSX.writeFile(wb, `suministros_${new Date().toISOString().slice(0,10)}.xlsx`);
-  setStatus("Excel descargado ✓");
+
+  // Descargar imágenes agrupadas por suministro
+  let totalCarpetas = 0;
+  for (const p of puntosActuales) {
+    const nota = notas[p.cod];
+    if (!nota?.imagenes?.length) continue;
+    nota.imagenes.forEach((img, i) => {
+      const a = document.createElement("a");
+      a.href = img.data;
+      a.download = `${p.cod}/img_${p.cod}_${i+1}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+    totalCarpetas++;
+  }
+
+  setStatus(`Excel descargado ✓${totalCarpetas > 0 ? ` + imágenes de ${totalCarpetas} suministros` : ""}`);
 }
 
 // ════════════════════════════════════════
