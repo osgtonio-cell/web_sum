@@ -1,0 +1,392 @@
+[
+  {
+    "ubigeo": "150502",
+    "departamento": "Lima",
+    "provincia": "Cañete",
+    "distrito": "Asia"
+  },
+  {
+    "ubigeo": "150503",
+    "departamento": "Lima",
+    "provincia": "Cañete",
+    "distrito": "Calango"
+  },
+  {
+    "ubigeo": "150504",
+    "departamento": "Lima",
+    "provincia": "Cañete",
+    "distrito": "Cerro Azul"
+  },
+  {
+    "ubigeo": "150505",
+    "departamento": "Lima",
+    "provincia": "Cañete",
+    "distrito": "Chilca"
+  },
+  {
+    "ubigeo": "150507",
+    "departamento": "Lima",
+    "provincia": "Cañete",
+    "distrito": "Imperial"
+  },
+  {
+    "ubigeo": "150508",
+    "departamento": "Lima",
+    "provincia": "Cañete",
+    "distrito": "Lunahuana"
+  },
+  {
+    "ubigeo": "150509",
+    "departamento": "Lima",
+    "provincia": "Cañete",
+    "distrito": "Mala"
+  },
+  {
+    "ubigeo": "150510",
+    "departamento": "Lima",
+    "provincia": "Cañete",
+    "distrito": "Nuevo Imperial"
+  },
+  {
+    "ubigeo": "150511",
+    "departamento": "Lima",
+    "provincia": "Cañete",
+    "distrito": "Pacaran"
+  },
+  {
+    "ubigeo": "150512",
+    "departamento": "Lima",
+    "provincia": "Cañete",
+    "distrito": "Quilmana"
+  },
+  {
+    "ubigeo": "150513",
+    "departamento": "Lima",
+    "provincia": "Cañete",
+    "distrito": "San Antonio"
+  },
+  {
+    "ubigeo": "150514",
+    "departamento": "Lima",
+    "provincia": "Cañete",
+    "distrito": "San Luis"
+  },
+  {
+    "ubigeo": "150501",
+    "departamento": "Lima",
+    "provincia": "Cañete",
+    "distrito": "San Vicente De Cañete"
+  },
+  {
+    "ubigeo": "150515",
+    "departamento": "Lima",
+    "provincia": "Cañete",
+    "distrito": "Santa Cruz De Flores"
+  },
+  {
+    "ubigeo": "150516",
+    "departamento": "Lima",
+    "provincia": "Cañete",
+    "distrito": "Zuñiga"
+  },
+  {
+    "ubigeo": "150703",
+    "departamento": "Lima",
+    "provincia": "Huarochiri",
+    "distrito": "Callahuanca"
+  },
+  {
+    "ubigeo": "150704",
+    "departamento": "Lima",
+    "provincia": "Huarochiri",
+    "distrito": "Carampoma"
+  },
+  {
+    "ubigeo": "150707",
+    "departamento": "Lima",
+    "provincia": "Huarochiri",
+    "distrito": "Huachupampa"
+  },
+  {
+    "ubigeo": "150708",
+    "departamento": "Lima",
+    "provincia": "Huarochiri",
+    "distrito": "Huanza"
+  },
+  {
+    "ubigeo": "150701",
+    "departamento": "Lima",
+    "provincia": "Huarochiri",
+    "distrito": "Matucana"
+  },
+  {
+    "ubigeo": "150714",
+    "departamento": "Lima",
+    "provincia": "Huarochiri",
+    "distrito": "Ricardo Palma"
+  },
+  {
+    "ubigeo": "150716",
+    "departamento": "Lima",
+    "provincia": "Huarochiri",
+    "distrito": "San Antonio"
+  },
+  {
+    "ubigeo": "150717",
+    "departamento": "Lima",
+    "provincia": "Huarochiri",
+    "distrito": "San Bartolome"
+  },
+  {
+    "ubigeo": "150719",
+    "departamento": "Lima",
+    "provincia": "Huarochiri",
+    "distrito": "San Juan De Iris"
+  },
+  {
+    "ubigeo": "150722",
+    "departamento": "Lima",
+    "provincia": "Huarochiri",
+    "distrito": "San Mateo"
+  },
+  {
+    "ubigeo": "150723",
+    "departamento": "Lima",
+    "provincia": "Huarochiri",
+    "distrito": "San Mateo De Otao"
+  },
+  {
+    "ubigeo": "150724",
+    "departamento": "Lima",
+    "provincia": "Huarochiri",
+    "distrito": "San Pedro De Casta"
+  },
+  {
+    "ubigeo": "150712",
+    "departamento": "Lima",
+    "provincia": "Huarochiri",
+    "distrito": "San Pedro De Laraos"
+  },
+  {
+    "ubigeo": "150727",
+    "departamento": "Lima",
+    "provincia": "Huarochiri",
+    "distrito": "Santa Cruz De Cocachacra"
+  },
+  {
+    "ubigeo": "150728",
+    "departamento": "Lima",
+    "provincia": "Huarochiri",
+    "distrito": "Santa Eulalia"
+  },
+  {
+    "ubigeo": "150730",
+    "departamento": "Lima",
+    "provincia": "Huarochiri",
+    "distrito": "Santiago De Tuna"
+  },
+  {
+    "ubigeo": "150732",
+    "departamento": "Lima",
+    "provincia": "Huarochiri",
+    "distrito": "Surco"
+  },
+  {
+    "ubigeo": "150103",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "Ate"
+  },
+  {
+    "ubigeo": "150104",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "Barranco"
+  },
+  {
+    "ubigeo": "150105",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "Breña"
+  },
+  {
+    "ubigeo": "150107",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "Chaclacayo"
+  },
+  {
+    "ubigeo": "150108",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "Chorrillos"
+  },
+  {
+    "ubigeo": "150109",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "Cieneguilla"
+  },
+  {
+    "ubigeo": "150111",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "El Agustino"
+  },
+  {
+    "ubigeo": "150113",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "Jesus Maria"
+  },
+  {
+    "ubigeo": "150114",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "La Molina"
+  },
+  {
+    "ubigeo": "150115",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "La Victoria"
+  },
+  {
+    "ubigeo": "150101",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "Lima"
+  },
+  {
+    "ubigeo": "150116",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "Lince"
+  },
+  {
+    "ubigeo": "150118",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "Lurigancho"
+  },
+  {
+    "ubigeo": "150119",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "Lurin"
+  },
+  {
+    "ubigeo": "150122",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "Miraflores"
+  },
+  {
+    "ubigeo": "150123",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "Pachacamac"
+  },
+  {
+    "ubigeo": "150124",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "Pucusana"
+  },
+  {
+    "ubigeo": "150126",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "Punta Hermosa"
+  },
+  {
+    "ubigeo": "150127",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "Punta Negra"
+  },
+  {
+    "ubigeo": "150129",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "San Bartolo"
+  },
+  {
+    "ubigeo": "150130",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "San Borja"
+  },
+  {
+    "ubigeo": "150131",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "San Isidro"
+  },
+  {
+    "ubigeo": "150132",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "San Juan De Lurigancho"
+  },
+  {
+    "ubigeo": "150133",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "San Juan De Miraflores"
+  },
+  {
+    "ubigeo": "150134",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "San Luis"
+  },
+  {
+    "ubigeo": "150137",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "Santa Anita"
+  },
+  {
+    "ubigeo": "150138",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "Santa Maria Del Mar"
+  },
+  {
+    "ubigeo": "150140",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "Santiago De Surco"
+  },
+  {
+    "ubigeo": "150141",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "Surquillo"
+  },
+  {
+    "ubigeo": "150142",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "Villa El Salvador"
+  },
+  {
+    "ubigeo": "150143",
+    "departamento": "Lima",
+    "provincia": "Lima",
+    "distrito": "Villa Maria Del Triunfo"
+  },
+  {
+    "ubigeo": "151009",
+    "departamento": "Lima",
+    "provincia": "Yauyos",
+    "distrito": "Chocos"
+  },
+  {
+    "ubigeo": "000nan",
+    "departamento": "Nan",
+    "provincia": "Nan",
+    "distrito": "Nan"
+  }
+]

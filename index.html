@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mapa de Suministros Eléctricos</title>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<!-- Leaflet Draw -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<!-- SheetJS para exportar Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg:        #0d0f14;
+    --panel:     #13161e;
+    --panel2:    #1a1e2a;
+    --border:    #252a38;
+    --accent:    #f0c040;
+    --accent2:   #4fc3f7;
+    --success:   #4caf7d;
+    --danger:    #ff5e5e;
+    --text:      #e8eaf0;
+    --muted:     #5a6070;
+    --radius:    6px;
+    --font-mono: 'Space Mono', monospace;
+    --font-sans: 'DM Sans', sans-serif;
+    --header-h:  48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { font-family: var(--font-sans); background: var(--bg); color: var(--text); height: 100%; overflow: hidden; }
+
+  /* ── HEADER ── */
+  header {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: var(--header-h);
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    z-index: 1100;
+  }
+  .logo-dot {
+    width: 9px; height: 9px; background: var(--accent);
+    border-radius: 50%; box-shadow: 0 0 8px var(--accent);
+    flex-shrink: 0; animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+  header h1 {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .menu-toggle {
+    margin-left: auto; background: none; border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text);
+    width: 34px; height: 34px; display: none;
+    align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px; flex-shrink: 0;
+  }
+  .btn-excel-header {
+    margin-left: auto; background: var(--success); border: none;
+    border-radius: var(--radius); color: #fff;
+    padding: 6px 12px; font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 1px; cursor: pointer; display: none;
+    align-items: center; gap: 6px; white-space: nowrap; transition: background .2s;
+  }
+  .btn-excel-header:hover { background: #3d9e6a; }
+  .btn-excel-header.visible { display: flex; }
+
+  /* ── LAYOUT ── */
+  .app {
+    position: fixed; top: var(--header-h); left: 0; right: 0; bottom: 0;
+    display: flex;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 300px; flex-shrink: 0; background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden;
+    z-index: 900; transition: transform .3s ease;
+  }
+  .sidebar-inner {
+    padding: 14px; display: flex; flex-direction: column;
+    gap: 12px; overflow-y: auto; flex: 1;
+  }
+  .sidebar-inner::-webkit-scrollbar { width: 3px; }
+  .sidebar-inner::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .section-label {
+    font-family: var(--font-mono); font-size: 9px;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 5px;
+  }
+
+  /* ── SELECTS ── */
+  select {
+    width: 100%; background: var(--panel2); border: 1px solid var(--border);
+    color: var(--text); padding: 10px 12px; border-radius: var(--radius);
+    font-family: var(--font-sans); font-size: 14px; appearance: none; cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235a6070' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+    transition: border-color .2s;
+  }
+  select:focus { outline: none; border-color: var(--accent); }
+  select:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── TABS ── */
+  .mode-tabs { display: flex; gap: 6px; }
+  .mode-tab {
+    flex: 1; padding: 9px 6px; background: var(--panel2);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    color: var(--muted); font-size: 12px; font-family: var(--font-sans);
+    cursor: pointer; text-align: center; transition: all .2s;
+  }
+  .mode-tab.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+  .mode-tab:hover:not(.active) { border-color: var(--accent); color: var(--text); }
+
+  /* ── BOTONES ── */
+  .btn {
+    width: 100%; padding: 12px; border-radius: var(--radius);
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 1px;
+    text-transform: uppercase; cursor: pointer; border: none; transition: all .2s;
+  }
+  .btn-primary { background: var(--accent); color: #000; font-weight: 700; }
+  .btn-primary:hover { background: #ffd060; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .btn-ghost:hover { border-color: var(--danger); color: var(--danger); }
+  .btn-excel { background: var(--success); color: #fff; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn-excel:hover { background: #3d9e6a; }
+
+  /* ── RESULTADOS ── */
+  .results-box { background: var(--panel2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .results-header { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+  .results-count { font-family: var(--font-mono); font-size: 11px; color: var(--accent); }
+  .results-label { font-size: 11px; color: var(--muted); }
+  .results-list { max-height: 200px; overflow-y: auto; padding: 4px 0; }
+  .results-list::-webkit-scrollbar { width: 3px; }
+  .results-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .result-item { display: flex; align-items: center; gap: 8px; padding: 7px 12px; cursor: pointer; transition: background .15s; }
+  .result-item:hover { background: var(--border); }
+  .result-item.has-note .result-dot { background: var(--accent2); }
+  .result-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  .result-cod { font-family: var(--font-mono); font-size: 11px; color: var(--text); flex: 1; }
+  .result-tag { font-size: 9px; background: var(--accent2); color: #000; border-radius: 3px; padding: 1px 5px; font-family: var(--font-mono); }
+
+  /* ── STATUS ── */
+  .status-bar {
+    padding: 7px 14px; border-top: 1px solid var(--border);
+    font-size: 10px; color: var(--muted); font-family: var(--font-mono);
+    display: flex; align-items: center; gap: 8px; min-height: 32px; flex-shrink: 0;
+  }
+  .spinner {
+    width: 10px; height: 10px; border: 2px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin .7s linear infinite; display: none; flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner.active { display: block; }
+
+  /* ── MAPA ── */
+  #map { flex: 1; background: #0a0c10; }
+
+  /* ── AREA INFO ── */
+  .area-info {
+    background: var(--panel2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 9px 12px;
+    font-size: 12px; color: var(--muted); display: none;
+  }
+  .area-info.visible { display: block; }
+  .area-info span { color: var(--accent2); font-family: var(--font-mono); font-size: 11px; }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.75);
+    z-index: 2000; display: none; align-items: center;
+    justify-content: center; padding: 16px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; width: 100%; max-width: 420px;
+    max-height: 90vh; overflow-y: auto; padding: 20px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .modal-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .modal-title { font-family: var(--font-mono); font-size: 11px; letter-spacing: 1px; color: var(--accent); }
+  .modal-cod { font-size: 14px; color: var(--text); margin-top: 3px; font-weight: 600; }
+  .modal-close { background: none; border: none; color: var(--muted); font-size: 22px; cursor: pointer; line-height: 1; flex-shrink: 0; }
+  .modal-close:hover { color: var(--danger); }
+  .modal-coords { font-family: var(--font-mono); font-size: 10px; color: var(--muted); background: var(--panel2); border-radius: var(--radius); padding: 8px 10px; }
+  textarea {
+    width: 100%; background: var(--panel2); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text);
+    font-family: var(--font-sans); font-size: 14px;
+    padding: 10px 12px; resize: vertical; min-height: 90px; transition: border-color .2s;
+  }
+  textarea:focus { outline: none; border-color: var(--accent); }
+  textarea::placeholder { color: var(--muted); }
+  .upload-area {
+    border: 1px dashed var(--border); border-radius: var(--radius);
+    padding: 18px; text-align: center; cursor: pointer;
+    transition: border-color .2s, background .2s; position: relative;
+  }
+  .upload-area:hover { border-color: var(--accent); background: rgba(240,192,64,.04); }
+  .upload-area input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-icon { font-size: 24px; margin-bottom: 6px; }
+  .upload-label { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .upload-label strong { color: var(--accent); }
+  .img-preview { display: none; position: relative; }
+  .img-preview img { width: 100%; border-radius: var(--radius); border: 1px solid var(--border); max-height: 180px; object-fit: cover; }
+  .img-preview .img-remove {
+    position: absolute; top: 6px; right: 6px;
+    background: rgba(0,0,0,.7); border: none; color: var(--danger);
+    border-radius: 50%; width: 26px; height: 26px;
+    cursor: pointer; font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .img-preview.visible { display: block; }
+  .modal-actions { display: flex; gap: 8px; }
+  .modal-actions .btn { flex: 1; }
+
+  /* ── POPUP LEAFLET ── */
+  .leaflet-popup-content-wrapper {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: 0 4px 20px rgba(0,0,0,.5);
+    color: var(--text); font-family: var(--font-sans);
+  }
+  .leaflet-popup-tip { background: var(--panel); }
+  .popup-inner { padding: 2px; min-width: 170px; }
+  .popup-cod { font-family: var(--font-mono); font-size: 13px; color: var(--accent); }
+  .popup-coords { font-size: 10px; color: var(--muted); margin-top: 3px; }
+  .popup-note { font-size: 11px; color: var(--accent2); margin-top: 6px; background: var(--panel2); border-radius: 4px; padding: 5px 7px; line-height: 1.4; }
+  .popup-img { margin-top: 6px; }
+  .popup-extras {
+  margin-top: 6px;
+  background: var(--panel2);
+  border-radius: 4px;
+  padding: 5px 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  }
+  .popup-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 10px;
+  }
+  .popup-key { color: var(--muted); flex-shrink: 0; }
+  .popup-val { color: var(--text); text-align: right; font-family: var(--font-mono); }
+  .popup-img img { width: 100%; border-radius: 4px; max-height: 120px; object-fit: cover; }
+  .popup-btn {
+    display: block; width: 100%; margin-top: 8px;
+    background: var(--accent); border: none; border-radius: 4px;
+    color: #000; font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 1px; padding: 7px; cursor: pointer; text-align: center;
+  }
+  .popup-btn:hover { background: #ffd060; }
+
+  /* ── LEAFLET DARK ── */
+  .leaflet-bar a { background-color: var(--panel) !important; color: var(--text) !important; border-color: var(--border) !important; }
+  .leaflet-bar a:hover { background-color: var(--panel2) !important; }
+
+  /* ── FAB ── */
+  .fab {
+    display: none; position: fixed; bottom: 20px; right: 16px;
+    z-index: 950; background: var(--accent); border: none;
+    border-radius: 50%; width: 54px; height: 54px;
+    align-items: center; justify-content: center; font-size: 22px;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(240,192,64,.4);
+    color: #000; transition: transform .2s;
+  }
+  .fab:active { transform: scale(0.92); }
+  .fab.hidden { display: none !important; }
+
+  /* ══════════════════════════════════════
+     RESPONSIVE MÓVIL
+  ══════════════════════════════════════ */
+  @media (max-width: 640px) {
+    :root { --header-h: 50px; }
+
+    .menu-toggle { display: flex; }
+    .btn-excel-header { margin-left: 0; }
+
+    /* Sidebar → bottom sheet */
+    .sidebar {
+      position: fixed; bottom: 0; left: 0; right: 0; top: auto;
+      width: 100%; height: 72vh; border-right: none;
+      border-top: 2px solid var(--accent);
+      border-radius: 14px 14px 0 0;
+      transform: translateY(100%);
+      transition: transform .35s cubic-bezier(.32,.72,0,1);
+      z-index: 1000;
+    }
+    .sidebar.open { transform: translateY(0); }
+    .sidebar::before {
+      content: ''; display: block; width: 36px; height: 4px;
+      background: var(--border); border-radius: 2px;
+      margin: 10px auto 0; flex-shrink: 0;
+    }
+
+    #map { position: fixed; inset: var(--header-h) 0 0 0; }
+    .app { flex-direction: column; }
+    .fab { display: flex; }
+
+    .btn { padding: 14px; font-size: 13px; }
+    select { padding: 12px 14px; font-size: 15px; }
+    .mode-tab { padding: 11px 6px; font-size: 13px; }
+    .results-list { max-height: 150px; }
+    .modal { padding: 16px; gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-dot"></div>
+  <h1>Suministros Eléctricos</h1>
+  <button class="btn-excel-header" id="btn-excel-header" onclick="exportarExcel()">⬇ Excel</button>
+  <button class="menu-toggle" id="menu-toggle" onclick="toggleSidebar()">☰</button>
+</header>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-inner">
+
+      <div>
+        <div class="section-label">Modo de filtro</div>
+        <div class="mode-tabs">
+          <button class="mode-tab active" id="tab-distrito" onclick="setMode('distrito')">Por Distrito</button>
+          <button class="mode-tab" id="tab-area" onclick="setMode('area')">Por Área</button>
+        </div>
+      </div>
+
+      <div id="panel-distrito">
+        <div class="section-label">Provincia</div>
+        <select id="sel-provincia" onchange="onProvinciaChange()">
+          <option value="">— Selecciona provincia —</option>
+        </select>
+        <div style="margin-top:10px">
+          <div class="section-label">Distrito</div>
+          <select id="sel-distrito" disabled onchange="onDistritoChange()">
+            <option value="">— Primero selecciona provincia —</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="panel-area" style="display:none">
+        <div class="section-label">Instrucciones</div>
+        <p style="font-size:12px; color:var(--muted); line-height:1.6">
+          Usa el <strong style="color:var(--text)">ícono de polígono</strong> en el mapa para dibujar un área, luego presiona <strong style="color:var(--accent)">Filtrar</strong>.
+        </p>
+        <div class="area-info" id="area-info" style="margin-top:10px">
+          Área dibujada: <span>lista para filtrar</span>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="btn-filtrar" onclick="filtrar()" disabled>▶ Filtrar</button>
+
+      <div id="results-container" style="display:none">
+        <div class="results-box">
+          <div class="results-header">
+            <span class="results-label">Suministros</span>
+            <span class="results-count" id="results-count">0</span>
+          </div>
+          <div class="results-list" id="results-list"></div>
+        </div>
+        <button class="btn btn-excel" onclick="exportarExcel()" style="margin-top:8px">
+          ⬇ Descargar Excel
+        </button>
+      </div>
+
+      <button class="btn btn-ghost" id="btn-limpiar" onclick="limpiar()" style="display:none">
+        ✕ Limpiar mapa
+      </button>
+
+    </div>
+    <div class="status-bar">
+      <div class="spinner" id="spinner"></div>
+      <span id="status-text">Cargando distritos...</span>
+    </div>
+  </aside>
+
+  <div id="map"></div>
+</div>
+
+<!-- FAB móvil -->
+<button class="fab" id="fab" onclick="toggleSidebar()">⚙</button>
+
+<!-- MODAL COMENTARIO -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">SUMINISTRO</div>
+        <div class="modal-cod" id="modal-cod">—</div>
+      </div>
+      <button class="modal-close" onclick="cerrarModal()">×</button>
+    </div>
+
+    <div class="modal-coords" id="modal-coords">lat: — | lon: —</div>
+
+    <div>
+      <div class="section-label">Comentario</div>
+      <textarea id="modal-comentario" placeholder="Escribe una nota sobre este suministro..."></textarea>
+    </div>
+
+    <div>
+      <div class="section-label">Imagen</div>
+      <div class="img-preview" id="img-preview">
+        <img id="img-preview-src" src="" alt="Preview"/>
+        <button class="img-remove" onclick="quitarImagen()">×</button>
+      </div>
+      <div class="upload-area" id="upload-area">
+        <input type="file" id="input-imagen" accept="image/*" onchange="onImagenSeleccionada(event)"/>
+        <div class="upload-icon">📷</div>
+        <div class="upload-label">Toca para <strong>adjuntar imagen</strong><br><small style="font-size:10px">JPG, PNG, WEBP</small></div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarComentario()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════
+const DATA_DIR       = "datos/distritos/";
+const DISTRITOS_JSON = "datos/distritos.json";
+const STORAGE_KEY    = "suministros_notas_v1";
+
+// ════════════════════════════════════════
+// ESTADO
+// ════════════════════════════════════════
+let todosDistritos  = [];
+let puntosActuales  = [];
+let markersActuales = [];
+let modoActual      = "distrito";
+let polyDibujada    = null;
+let capaPuntos      = null;
+let drawnItems      = null;
+let drawControl     = null;
+let ubigeoCargado   = null;
+let modalPuntoActual = null;
+let imagenBase64    = null;
+let notas           = {};
+
+// ════════════════════════════════════════
+// MAPA
+// ════════════════════════════════════════
+const map = L.map("map", { center: [-12.05, -77.05], zoom: 11 });
+
+L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+  attribution: '© OpenStreetMap © CARTO', maxZoom: 19,
+}).addTo(map);
+
+drawnItems = new L.FeatureGroup().addTo(map);
+drawControl = new L.Control.Draw({
+  draw: {
+    polygon:   { shapeOptions: { color: "#f0c040", weight: 2, fillOpacity: 0.1 } },
+    rectangle: { shapeOptions: { color: "#f0c040", weight: 2, fillOpacity: 0.1 } },
+    circle: false, marker: false, circlemarker: false, polyline: false,
+  },
+  edit: { featureGroup: drawnItems },
+});
+
+map.on(L.Draw.Event.CREATED, function(e) {
+  drawnItems.clearLayers();
+  drawnItems.addLayer(e.layer);
+  polyDibujada = e.layer;
+  document.getElementById("area-info").classList.add("visible");
+  document.getElementById("btn-filtrar").disabled = false;
+  setStatus("Área dibujada. Presiona Filtrar.");
+});
+
+map.on("click", () => { if (window.innerWidth <= 640) closeSidebar(); });
+
+// ════════════════════════════════════════
+// SIDEBAR MÓVIL
+// ════════════════════════════════════════
+function toggleSidebar() {
+  const sb = document.getElementById("sidebar");
+  sb.classList.toggle("open");
+  document.getElementById("fab").classList.toggle("hidden", sb.classList.contains("open"));
+}
+function closeSidebar() {
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("fab").classList.remove("hidden");
+}
+
+// ════════════════════════════════════════
+// LOCAL STORAGE
+// ════════════════════════════════════════
+function cargarNotas() {
+  try { notas = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); }
+  catch(e) { notas = {}; }
+}
+function guardarNotas() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(notas)); } catch(e) {}
+}
+
+// ════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════
+async function cargarDistritos() {
+  cargarNotas();
+  try {
+    todosDistritos = await (await fetch(DISTRITOS_JSON)).json();
+    const provincias = [...new Set(todosDistritos.map(d => d.provincia))].sort();
+    const sel = document.getElementById("sel-provincia");
+    provincias.forEach(p => {
+      const o = document.createElement("option");
+      o.value = p; o.textContent = p; sel.appendChild(o);
+    });
+    setStatus(`${todosDistritos.length} distritos cargados.`);
+  } catch(e) { setStatus("⚠ No se encontró datos/distritos.json"); }
+}
+
+// ════════════════════════════════════════
+// SELECTS
+// ════════════════════════════════════════
+function onProvinciaChange() {
+  const prov = document.getElementById("sel-provincia").value;
+  const sel  = document.getElementById("sel-distrito");
+  sel.innerHTML = '<option value="">— Selecciona distrito —</option>';
+  sel.disabled  = !prov;
+  document.getElementById("btn-filtrar").disabled = true;
+  if (!prov) return;
+  todosDistritos.filter(d => d.provincia === prov).forEach(d => {
+    const o = document.createElement("option");
+    o.value = d.ubigeo; o.textContent = d.distrito; sel.appendChild(o);
+  });
+}
+function onDistritoChange() {
+  document.getElementById("btn-filtrar").disabled = !document.getElementById("sel-distrito").value;
+}
+
+// ════════════════════════════════════════
+// MODO
+// ════════════════════════════════════════
+function setMode(modo) {
+  modoActual = modo;
+  document.getElementById("tab-distrito").classList.toggle("active", modo === "distrito");
+  document.getElementById("tab-area").classList.toggle("active", modo === "area");
+  document.getElementById("panel-distrito").style.display = modo === "distrito" ? "block" : "none";
+  document.getElementById("panel-area").style.display     = modo === "area"     ? "block" : "none";
+  document.getElementById("btn-filtrar").disabled = true;
+  if (modo === "area") {
+    drawControl.addTo(map);
+    setStatus("Dibuja un polígono o rectángulo en el mapa.");
+  } else {
+    try { drawControl.remove(); } catch(e) {}
+    document.getElementById("btn-filtrar").disabled = !document.getElementById("sel-distrito").value;
+  }
+}
+
+// ════════════════════════════════════════
+// FILTRAR
+// ════════════════════════════════════════
+async function filtrar() {
+  limpiarPuntos();
+  if (modoActual === "distrito") {
+    const ubigeo = document.getElementById("sel-distrito").value;
+    if (!ubigeo) return;
+    await filtrarPorDistrito(ubigeo);
+  } else {
+    if (!polyDibujada) return;
+    await filtrarPorArea();
+  }
+}
+
+async function filtrarPorDistrito(ubigeo) {
+  setLoading(true, "Cargando suministros...");
+  try {
+    let puntos = [];
+
+    // Intentar índice de paginación primero
+    const idxRes = await fetch(`${DATA_DIR}${ubigeo}_index.json`);
+    if (idxRes.ok) {
+      const idx = await idxRes.json();
+      setStatus(`Cargando ${idx.paginas} partes...`);
+      for (let i = 1; i <= idx.paginas; i++) {
+        const parte = await (await fetch(`${DATA_DIR}${ubigeo}_${i}.json`)).json();
+        puntos = puntos.concat(parte);
+        setStatus(`Cargando parte ${i}/${idx.paginas}...`);
+      }
+    } else {
+      // Archivo único normal
+      puntos = await (await fetch(`${DATA_DIR}${ubigeo}.json`)).json();
+    }
+
+    puntosActuales = puntos;
+    renderizarPuntos(puntos);
+    if (capaPuntos && puntos.length > 0) map.fitBounds(capaPuntos.getBounds(), {padding:[40,40]});
+    setLoading(false, `${puntos.length.toLocaleString()} suministros.`);
+  } catch(e) {
+    setLoading(false, "⚠ No hay datos para este distrito.");
+  }
+}
+
+async function filtrarPorArea() {
+  setLoading(true, "Buscando en el área...");
+  const bounds = polyDibujada.getBounds();
+  let result = [], proc = 0;
+  for (const dist of todosDistritos) {
+    try {
+      const puntos = await (await fetch(`${DATA_DIR}${dist.ubigeo}.json`)).json();
+      for (const p of puntos) {
+        const ll = L.latLng(p.lat, p.lon);
+        if (bounds.contains(ll) && puntoEnPoligono(ll, polyDibujada)) result.push(p);
+      }
+    } catch(e) {}
+    proc++;
+    setStatus(`Procesando... ${proc}/${todosDistritos.length}`);
+  }
+  puntosActuales = result;
+  renderizarPuntos(result);
+  setLoading(false, `${result.length.toLocaleString()} suministros en el área.`);
+}
+
+function puntoEnPoligono(latlng, layer) {
+  if (layer instanceof L.Rectangle) return layer.getBounds().contains(latlng);
+  const pts = layer.getLatLngs()[0];
+  let inside = false;
+  const x = latlng.lng, y = latlng.lat;
+  for (let i = 0, j = pts.length-1; i < pts.length; j = i++) {
+    const xi=pts[i].lng, yi=pts[i].lat, xj=pts[j].lng, yj=pts[j].lat;
+    if (((yi>y) !== (yj>y)) && (x < (xj-xi)*(y-yi)/(yj-yi)+xi)) inside = !inside;
+  }
+  return inside;
+}
+
+// ════════════════════════════════════════
+// RENDERIZAR
+// ════════════════════════════════════════
+function renderizarPuntos(puntos) {
+  if (capaPuntos) { map.removeLayer(capaPuntos); capaPuntos = null; }
+  markersActuales = [];
+
+  const markers = puntos.map((p, idx) => {
+    const tieneNota = !!notas[p.cod];
+    const m = L.circleMarker([p.lat, p.lon], {
+      radius: 5,
+      fillColor: tieneNota ? "#4fc3f7" : "#f0c040",
+      color: "#000", weight: 0.5, fillOpacity: 0.85,
+    });
+    m.on("click", () => { abrirModal(p, idx); });
+    m.bindPopup(() => construirPopup(p, idx));
+    markersActuales.push(m);
+    return m;
+  });
+
+  capaPuntos = L.layerGroup(markers).addTo(map);
+
+  // Lista lateral
+  const list = document.getElementById("results-list");
+  list.innerHTML = "";
+  document.getElementById("results-count").textContent = puntos.length.toLocaleString();
+
+  puntos.slice(0, 500).forEach((p, i) => {
+    const tieneNota = !!notas[p.cod];
+    const item = document.createElement("div");
+    item.className = "result-item" + (tieneNota ? " has-note" : "");
+    item.innerHTML = `
+      <div class="result-dot"></div>
+      <span class="result-cod">${p.cod}</span>
+      ${tieneNota ? '<span class="result-tag">nota</span>' : ''}
+    `;
+    item.onclick = () => {
+      map.setView([p.lat, p.lon], 17);
+      if (window.innerWidth <= 640) closeSidebar();
+      setTimeout(() => markersActuales[i] && markersActuales[i].openPopup(), 350);
+    };
+    list.appendChild(item);
+  });
+
+  if (puntos.length > 500) {
+    const more = document.createElement("div");
+    more.style.cssText = "padding:7px 12px; font-size:11px; color:var(--muted);";
+    more.textContent = `+ ${(puntos.length-500).toLocaleString()} más`;
+    list.appendChild(more);
+  }
+
+  document.getElementById("results-container").style.display = "block";
+  document.getElementById("btn-limpiar").style.display = "block";
+  document.getElementById("btn-excel-header").classList.add("visible");
+}
+
+// ════════════════════════════════════════
+// POPUP
+// ════════════════════════════════════════
+function construirPopup(p, idx) {
+  const nota = notas[p.cod];
+  const etiquetas = {
+    propiedad: "Propiedad", estado: "Estado", fecha_ps: "Fecha PS",
+    sector: "Sector", cod_sist: "Cód. Sistema", nom_sist: "Sistema",
+    alim: "Alimentador", sed: "SED"
+  };
+  let extras = "";
+  for (const [key, label] of Object.entries(etiquetas)) {
+    if (p[key] != null && p[key] !== "") {
+      extras += `<div class="popup-row"><span class="popup-key">${label}</span><span class="popup-val">${p[key]}</span></div>`;
+    }
+  }
+  let html = `
+    <div class="popup-cod">${p.cod}</div>
+    <div class="popup-coords">lat ${p.lat.toFixed(5)} | lon ${p.lon.toFixed(5)}</div>
+    ${extras ? `<div class="popup-extras">${extras}</div>` : ""}
+  `;
+  if (nota?.comentario) html += `<div class="popup-note">💬 ${nota.comentario}</div>`;
+  if (nota?.imagen)     html += `<div class="popup-img"><img src="${nota.imagen}" alt="foto"/></div>`;
+  html += `<button class="popup-btn" id="popup-btn-${p.cod}">${nota ? '✏ Editar nota' : '+ Agregar nota'}</button>`;
+
+  const div = document.createElement("div");
+  div.className = "popup-inner";
+  div.innerHTML = html;
+  div.querySelector(`#popup-btn-${p.cod}`).onclick = () => {
+    map.closePopup();
+    abrirModal(p, idx);
+  };
+  return div;
+}
+
+// ════════════════════════════════════════
+// MODAL
+// ════════════════════════════════════════
+function abrirModal(p, idx) {
+  modalPuntoActual = { p, idx };
+  imagenBase64 = null;
+
+  document.getElementById("modal-cod").textContent    = p.cod;
+  document.getElementById("modal-coords").textContent = `lat: ${p.lat.toFixed(6)} | lon: ${p.lon.toFixed(6)}`;
+
+  const nota = notas[p.cod];
+  document.getElementById("modal-comentario").value = nota?.comentario || "";
+
+  if (nota?.imagen) {
+    imagenBase64 = nota.imagen;
+    document.getElementById("img-preview-src").src = nota.imagen;
+    document.getElementById("img-preview").classList.add("visible");
+    document.getElementById("upload-area").style.display = "none";
+  } else {
+    document.getElementById("img-preview").classList.remove("visible");
+    document.getElementById("upload-area").style.display = "block";
+    document.getElementById("input-imagen").value = "";
+  }
+
+  document.getElementById("modal-overlay").classList.add("open");
+}
+
+function cerrarModal() {
+  document.getElementById("modal-overlay").classList.remove("open");
+  modalPuntoActual = null;
+  imagenBase64 = null;
+}
+
+function guardarComentario() {
+  if (!modalPuntoActual) return;
+  const cod        = modalPuntoActual.p.cod;
+  const comentario = document.getElementById("modal-comentario").value.trim();
+
+  if (comentario || imagenBase64) {
+    notas[cod] = { comentario, imagen: imagenBase64 || null, fecha: new Date().toISOString() };
+  } else {
+    delete notas[cod];
+  }
+
+  guardarNotas();
+  cerrarModal();
+  renderizarPuntos(puntosActuales); // refrescar colores y etiquetas
+  setStatus("Nota guardada ✓");
+}
+
+// ════════════════════════════════════════
+// IMAGEN
+// ════════════════════════════════════════
+function onImagenSeleccionada(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    imagenBase64 = ev.target.result;
+    document.getElementById("img-preview-src").src = imagenBase64;
+    document.getElementById("img-preview").classList.add("visible");
+    document.getElementById("upload-area").style.display = "none";
+  };
+  reader.readAsDataURL(file);
+}
+
+function quitarImagen() {
+  imagenBase64 = null;
+  document.getElementById("img-preview").classList.remove("visible");
+  document.getElementById("upload-area").style.display = "block";
+  document.getElementById("input-imagen").value = "";
+}
+
+// ════════════════════════════════════════
+// EXPORTAR EXCEL
+// ════════════════════════════════════════
+function exportarExcel() {
+  if (!puntosActuales.length) { setStatus("No hay datos para exportar."); return; }
+
+  const filas = puntosActuales.map(p => {
+    const nota = notas[p.cod] || {};
+    return {
+      "Cod. Suministro":  p.cod,
+      "Latitud (WGS84)":  p.lat,
+      "Longitud (WGS84)": p.lon,
+      "Propiedad":        p.propiedad  ?? "",
+      "Estado":           p.estado     ?? "",
+      "Fecha PS":         p.fecha_ps   ?? "",
+      "Sector":           p.sector     ?? "",
+      "Cód. Sistema":     p.cod_sist   ?? "",
+      "Sistema":          p.nom_sist   ?? "",
+      "Alimentador":      p.alim       ?? "",
+      "SED":              p.sed        ?? "",
+      "Comentario":       nota.comentario || "",
+      "Imagen adjunta":   nota.imagen ? "Sí" : "No",
+      "Fecha nota":       nota.fecha ? new Date(nota.fecha).toLocaleString("es-PE") : "",
+    };
+  });
+
+  const ws = XLSX.utils.json_to_sheet(filas);
+  ws["!cols"] = [
+    {wch:22},{wch:16},{wch:16},{wch:14},{wch:12},{wch:14},
+    {wch:12},{wch:14},{wch:24},{wch:16},{wch:14},{wch:42},{wch:14},{wch:22}
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Suministros");
+  XLSX.writeFile(wb, `suministros_${new Date().toISOString().slice(0,10)}.xlsx`);
+  setStatus("Excel descargado ✓");
+}
+
+// ════════════════════════════════════════
+// LIMPIAR
+// ════════════════════════════════════════
+function limpiarPuntos() {
+  if (capaPuntos) { map.removeLayer(capaPuntos); capaPuntos = null; }
+  puntosActuales = []; markersActuales = [];
+  document.getElementById("results-container").style.display = "none";
+  document.getElementById("btn-limpiar").style.display = "none";
+  document.getElementById("btn-excel-header").classList.remove("visible");
+  ubigeoCargado = null;
+}
+
+function limpiar() {
+  limpiarPuntos();
+  drawnItems.clearLayers(); polyDibujada = null;
+  document.getElementById("area-info").classList.remove("visible");
+  document.getElementById("btn-filtrar").disabled = true;
+  document.getElementById("sel-provincia").value = "";
+  document.getElementById("sel-distrito").innerHTML = '<option value="">— Primero selecciona provincia —</option>';
+  document.getElementById("sel-distrito").disabled = true;
+  setStatus("Mapa limpiado.");
+}
+
+// ════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════
+function setLoading(on, msg) {
+  document.getElementById("spinner").classList.toggle("active", on);
+  setStatus(msg);
+  document.getElementById("btn-filtrar").disabled = on;
+}
+function setStatus(msg) { document.getElementById("status-text").textContent = msg; }
+
+// ════════════════════════════════════════
+// START
+// ════════════════════════════════════════
+cargarDistritos();
+</script>
+</body>
+</html>
