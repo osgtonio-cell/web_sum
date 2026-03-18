@@ -603,7 +603,7 @@ async function filtrar() {
     await filtrarPorDistrito(ubigeo);
   } else if (modoActual === "area") {
     if (!polyDibujada) return;
-    await ();
+    await filtrarPorArea();
   } else {
     await filtrarPorCodigos();
   }
