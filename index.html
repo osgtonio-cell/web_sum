@@ -646,24 +646,44 @@ async function filtrarPorArea() {
   for (const dist of todosDistritos) {
     try {
       let puntos = [];
+      const urlIndex = `${DATA_DIR}${dist.ubigeo}_index.json`;
+      const urlSimple = `${DATA_DIR}${dist.ubigeo}.json`;
 
-      const idxRes = await fetch(`${DATA_DIR}${dist.ubigeo}_index.json`);
-      if (idxRes.ok) {
-        const idx = await idxRes.json();
-        for (let i = 1; i <= idx.paginas; i++) {
-          const parte = await (await fetch(`${DATA_DIR}${dist.ubigeo}_${i}.json`)).json();
-          puntos = puntos.concat(parte);
+      let cargado = false;
+
+      try {
+        const idxRes = await fetch(urlIndex);
+        if (idxRes.ok) {
+          const idx = await idxRes.json();
+          console.log(`📄 Paginado: ${dist.ubigeo} → ${idx.paginas} partes`);
+          for (let i = 1; i <= idx.paginas; i++) {
+            const parte = await (await fetch(`${DATA_DIR}${dist.ubigeo}_${i}.json`)).json();
+            puntos = puntos.concat(parte);
+          }
+          cargado = true;
         }
-      } else {
-        puntos = await (await fetch(`${DATA_DIR}${dist.ubigeo}.json`)).json();
+      } catch(e) {
+        console.warn(`⚠ Error cargando index de ${dist.ubigeo}:`, e);
       }
+
+      if (!cargado) {
+        try {
+          puntos = await (await fetch(urlSimple)).json();
+        } catch(e) {
+          console.warn(`⚠ Error cargando simple ${dist.ubigeo}:`, e);
+        }
+      }
+
+      console.log(`${dist.ubigeo} → ${puntos.length} puntos cargados`);
 
       for (const p of puntos) {
         const ll = L.latLng(p.lat, p.lon);
         if (bounds.contains(ll) && puntoEnPoligono(ll, polyDibujada)) result.push(p);
       }
 
-    } catch(e) {}
+    } catch(e) {
+      console.error(`❌ Error general en ${dist.ubigeo}:`, e);
+    }
 
     proc++;
     setStatus(`Procesando... ${proc}/${todosDistritos.length} | encontrados: ${result.length}`);
@@ -673,7 +693,6 @@ async function filtrarPorArea() {
   renderizarPuntos(result);
   setLoading(false, `${result.length.toLocaleString()} suministros en el área.`);
 }
-
 async function filtrarPorCodigos() {
   const raw = document.getElementById("input-cods").value;
   // Separar por salto de línea, coma, punto y coma o tabulación
