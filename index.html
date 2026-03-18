@@ -603,7 +603,7 @@ async function filtrar() {
     await filtrarPorDistrito(ubigeo);
   } else if (modoActual === "area") {
     if (!polyDibujada) return;
-    await filtrarPorArea();
+    await ();
   } else {
     await filtrarPorCodigos();
   }
@@ -642,17 +642,33 @@ async function filtrarPorArea() {
   setLoading(true, "Buscando en el área...");
   const bounds = polyDibujada.getBounds();
   let result = [], proc = 0;
+
   for (const dist of todosDistritos) {
     try {
-      const puntos = await (await fetch(`${DATA_DIR}${dist.ubigeo}.json`)).json();
+      let puntos = [];
+
+      const idxRes = await fetch(`${DATA_DIR}${dist.ubigeo}_index.json`);
+      if (idxRes.ok) {
+        const idx = await idxRes.json();
+        for (let i = 1; i <= idx.paginas; i++) {
+          const parte = await (await fetch(`${DATA_DIR}${dist.ubigeo}_${i}.json`)).json();
+          puntos = puntos.concat(parte);
+        }
+      } else {
+        puntos = await (await fetch(`${DATA_DIR}${dist.ubigeo}.json`)).json();
+      }
+
       for (const p of puntos) {
         const ll = L.latLng(p.lat, p.lon);
         if (bounds.contains(ll) && puntoEnPoligono(ll, polyDibujada)) result.push(p);
       }
+
     } catch(e) {}
+
     proc++;
-    setStatus(`Procesando... ${proc}/${todosDistritos.length}`);
+    setStatus(`Procesando... ${proc}/${todosDistritos.length} | encontrados: ${result.length}`);
   }
+
   puntosActuales = result;
   renderizarPuntos(result);
   setLoading(false, `${result.length.toLocaleString()} suministros en el área.`);
