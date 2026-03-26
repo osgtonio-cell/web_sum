@@ -760,7 +760,7 @@ function renderizarPuntos(puntos) {
 
   const markers = puntos.map((p, idx) => {
     const tieneNota = !!notas[p.cod];
-    const esALP = p.tipo_sum === "ALP";
+    const esALP = p.TIPO_SUM === "ALP";
     const color = tieneNota ? "#4fc3f7" : esALP ? "#f0c040" : "#4fc3f7";
     const m = L.circleMarker([p.lat, p.lon], {
       radius: 5,
@@ -816,7 +816,7 @@ function construirPopup(p, idx) {
   const etiquetas = {
     propiedad: "Propiedad", estado: "Estado", fecha_ps: "Fecha PS",
     sector: "Sector", cod_sist: "Cód. Sistema", nom_sist: "Sistema",
-    alim: "Alimentador", sed: "SED", tipo_sum: "Tipo"
+    alim: "Alimentador", sed: "SED", TIPO_SUM: "Tipo"
   };
   let extras = "";
   for (const [key, label] of Object.entries(etiquetas)) {
@@ -953,7 +953,7 @@ function exportarExcel() {
       "Sistema":          p.nom_sist   ?? "",
       "Alimentador":      p.alim       ?? "",
       "SED":              p.sed        ?? "",
-      "Tipo suministro":  p.tipo_sum   ?? "",
+      "Tipo suministro":  p.TIPO_SUM   ?? "",
       "Comentario":       nota.comentario || "",
       "Imágenes":         nombresImagenes,
       "Fecha nota":       nota.fecha ? new Date(nota.fecha).toLocaleString("es-PE") : "",
