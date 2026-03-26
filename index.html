@@ -760,9 +760,11 @@ function renderizarPuntos(puntos) {
 
   const markers = puntos.map((p, idx) => {
     const tieneNota = !!notas[p.cod];
+    const esALP = p.tipo_sum === "ALP";
+    const color = tieneNota ? "#4fc3f7" : esALP ? "#f0c040" : "#4fc3f7";
     const m = L.circleMarker([p.lat, p.lon], {
       radius: 5,
-      fillColor: tieneNota ? "#4fc3f7" : "#f0c040",
+      fillColor: color,
       color: "#000", weight: 0.5, fillOpacity: 0.85,
     });
     m.bindPopup(() => construirPopup(p, idx));
@@ -814,7 +816,7 @@ function construirPopup(p, idx) {
   const etiquetas = {
     propiedad: "Propiedad", estado: "Estado", fecha_ps: "Fecha PS",
     sector: "Sector", cod_sist: "Cód. Sistema", nom_sist: "Sistema",
-    alim: "Alimentador", sed: "SED"
+    alim: "Alimentador", sed: "SED", tipo_sum: "Tipo"
   };
   let extras = "";
   for (const [key, label] of Object.entries(etiquetas)) {
@@ -951,6 +953,7 @@ function exportarExcel() {
       "Sistema":          p.nom_sist   ?? "",
       "Alimentador":      p.alim       ?? "",
       "SED":              p.sed        ?? "",
+      "Tipo suministro":  p.tipo_sum   ?? "",
       "Comentario":       nota.comentario || "",
       "Imágenes":         nombresImagenes,
       "Fecha nota":       nota.fecha ? new Date(nota.fecha).toLocaleString("es-PE") : "",
@@ -960,7 +963,7 @@ function exportarExcel() {
   const ws = XLSX.utils.json_to_sheet(filas);
   ws["!cols"] = [
     {wch:22},{wch:16},{wch:16},{wch:14},{wch:12},{wch:14},
-    {wch:12},{wch:14},{wch:24},{wch:16},{wch:14},{wch:42},{wch:36},{wch:22}
+    {wch:12},{wch:14},{wch:24},{wch:16},{wch:14},{wch:16},{wch:42},{wch:36},{wch:22}
   ];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Suministros");
