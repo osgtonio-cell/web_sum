@@ -760,7 +760,7 @@ function renderizarPuntos(puntos) {
 
   const markers = puntos.map((p, idx) => {
     const tieneNota = !!notas[p.cod];
-    const esALP = p.TIPO_SUM === "ALP";
+    const esALP = p.TIPO_SUM === "Alumbrado Público";
     const color = tieneNota ? "#4fc3f7" : esALP ? "#f0c040" : "#4fc3f7";
     const m = L.circleMarker([p.lat, p.lon], {
       radius: 5,
